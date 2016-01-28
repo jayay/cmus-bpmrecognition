@@ -1,0 +1,9 @@
+build/*
+test.*
+MyWrapper.*
+Wrappertest.*
+docs/*
+
+config.h
+config.log
+config.status
