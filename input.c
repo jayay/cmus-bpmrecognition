@@ -95,15 +95,6 @@ struct ip {
 static const char * const plugin_dir = LIBDIR "/cmus/ip";
 static LIST_HEAD(ip_head);
 
-/* timeouts (ms) */
-static int http_connection_timeout = 5e3;
-static int http_read_timeout = 5e3;
-
-static const char *pl_mime_types[] = {
-	"audio/m3u",
-	"audio/x-scpls",
-	"audio/x-mpegurl"
-};
 
 static const struct input_plugin_ops *get_ops_by_extension(const char *ext, struct list_head **headp)
 {
@@ -140,242 +131,13 @@ static const struct input_plugin_ops *get_ops_by_mime_type(const char *mime_type
 	return NULL;
 }
 
-static void keyvals_add_basic_auth(struct growing_keyvals *c,
-				   const char *user,
-				   const char *pass,
-				   const char *header)
-{
-	char buf[256];
-	char *encoded;
-
-	snprintf(buf, sizeof(buf), "%s:%s", user, pass);
-	encoded = base64_encode(buf);
-	if (encoded == NULL) {
-          //		d_print("couldn't base64 encode '%s'\n", buf);
-	} else {
-		snprintf(buf, sizeof(buf), "Basic %s", encoded);
-		free(encoded);
-		keyvals_add(c, header, xstrdup(buf));
-	}
-}
-
-/*
-static int do_http_get(struct http_get *hg, const char *uri, int redirections)
-{
-	GROWING_KEYVALS(h);
-	int i, rc;
-	const char *val;
-	char *redirloc;
-
-	d_print("%s\n", uri);
-
-	hg->headers = NULL;
-	hg->reason = NULL;
-	hg->proxy = NULL;
-	hg->code = -1;
-	hg->fd = -1;
-	if (http_parse_uri(uri, &hg->uri))
-		return -IP_ERROR_INVALID_URI;
-
-	if (http_open(hg, http_connection_timeout))
-		return -IP_ERROR_ERRNO;
-
-	keyvals_add(&h, "Host", xstrdup(hg->uri.host));
-	if (hg->proxy && hg->proxy->user && hg->proxy->pass)
-		keyvals_add_basic_auth(&h, hg->proxy->user, hg->proxy->pass, "Proxy-Authorization");
-	keyvals_add(&h, "User-Agent", xstrdup("cmus/" VERSION));
-	keyvals_add(&h, "Icy-MetaData", xstrdup("1"));
-	if (hg->uri.user && hg->uri.pass)
-		keyvals_add_basic_auth(&h, hg->uri.user, hg->uri.pass, "Authorization");
-	keyvals_terminate(&h);
-
-	rc = http_get(hg, h.keyvals, http_read_timeout);
-	keyvals_free(h.keyvals);
-	switch (rc) {
-	case -1:
-		return -IP_ERROR_ERRNO;
-	case -2:
-		return -IP_ERROR_HTTP_RESPONSE;
-	}
-
-	d_print("HTTP response: %d %s\n", hg->code, hg->reason);
-	for (i = 0; hg->headers[i].key != NULL; i++)
-		d_print("  %s: %s\n", hg->headers[i].key, hg->headers[i].val);
-
-	switch (hg->code) {
-	case 200: /* OK */
-//		return 0;
-	/*
-	 * 3xx Codes (Redirections)
-	 *     unhandled: 300 Multiple Choices
-	 */
-//	case 301: /* Moved Permanently */
-//	case 302: /* Found */
-//	case 303: /* See Other */
-//	case 307: /* Temporary Redirect */
-/*		val = keyvals_get_val(hg->headers, "location");
-		if (!val)
-			return -IP_ERROR_HTTP_RESPONSE;
-
-		redirections++;
-		if (redirections > 2)
-			return -IP_ERROR_HTTP_REDIRECT_LIMIT;
-
-		redirloc = xstrdup(val);
-		http_get_free(hg);
-		close(hg->fd);
-
-		rc = do_http_get(hg, redirloc, redirections);
-
-		free(redirloc);
-		return rc;
-	default:
-		return -IP_ERROR_HTTP_STATUS;
-	}
-}
-*/
-
-static int setup_remote(struct input_plugin *ip, const struct keyval *headers, int sock)
-{
-	const char *val;
-
-	val = keyvals_get_val(headers, "Content-Type");
-	if (val) {
-		d_print("Content-Type: %s\n", val);
-		ip->ops = get_ops_by_mime_type(val);
-		if (ip->ops == NULL) {
-			d_print("unsupported content type: %s\n", val);
-			close(sock);
-			return -IP_ERROR_FILE_FORMAT;
-		}
-	} else {
-		const char *type = "audio/mpeg";
-
-		d_print("assuming %s content type\n", type);
-		ip->ops = get_ops_by_mime_type(type);
-		if (ip->ops == NULL) {
-			d_print("unsupported content type: %s\n", type);
-			close(sock);
-			return -IP_ERROR_FILE_FORMAT;
-		}
-	}
-
-	ip->data.fd = sock;
-	ip->data.metadata = xnew(char, 16 * 255 + 1);
-
-	val = keyvals_get_val(headers, "icy-metaint");
-	if (val) {
-		long int lint;
-
-		if (str_to_int(val, &lint) == 0 && lint >= 0) {
-			ip->data.metaint = lint;
-			d_print("metaint: %d\n", ip->data.metaint);
-		}
-	}
-
-	val = keyvals_get_val(headers, "icy-name");
-	if (val)
-		ip->data.icy_name = to_utf8(val, icecast_default_charset);
-
-	val = keyvals_get_val(headers, "icy-genre");
-	if (val)
-		ip->data.icy_genre = to_utf8(val, icecast_default_charset);
-
-	val = keyvals_get_val(headers, "icy-url");
-	if (val)
-		ip->data.icy_url = to_utf8(val, icecast_default_charset);
-
-	return 0;
-}
-
 struct read_playlist_data {
 	struct input_plugin *ip;
 	int rc;
 	int count;
 };
 
-/*
-static int handle_line(void *data, const char *uri)
-{
-	struct read_playlist_data *rpd = data;
-	struct http_get hg;
 
-	rpd->count++;
-	rpd->rc = do_http_get(&hg, uri, 0);
-	if (rpd->rc) {
-		rpd->ip->http_code = hg.code;
-		rpd->ip->http_reason = hg.reason;
-		if (hg.fd >= 0)
-			close(hg.fd);
-
-		hg.reason = NULL;
-		http_get_free(&hg);
-		return 0;
-	}
-
-	rpd->rc = setup_remote(rpd->ip, hg.headers, hg.fd);
-	http_get_free(&hg);
-	return 1;
-}
-*/
-
-/*
-static int read_playlist(struct input_plugin *ip, int sock)
-{
-	struct read_playlist_data rpd = { ip, 0, 0 };
-	char *body;
-	size_t size;
-
-	body = http_read_body(sock, &size, http_read_timeout);
-	close(sock);
-	if (!body)
-		return -IP_ERROR_ERRNO;
-
-	cmus_playlist_for_each(body, size, 0, handle_line, &rpd);
-	free(body);
-	if (!rpd.count) {
-		d_print("empty playlist\n");
-		rpd.rc = -IP_ERROR_HTTP_RESPONSE;
-	}
-	return rpd.rc;
-}
-*/
-
-/*
-static int open_remote(struct input_plugin *ip)
-{
-	struct input_plugin_data *d = &ip->data;
-	struct http_get hg;
-	const char *val;
-	int rc;
-
-	rc = do_http_get(&hg, d->filename, 0);
-	if (rc) {
-		ip->http_code = hg.code;
-		ip->http_reason = hg.reason;
-		hg.reason = NULL;
-		http_get_free(&hg);
-		return rc;
-	}
-
-	val = keyvals_get_val(hg.headers, "Content-Type");
-	if (val) {
-		int i;
-
-		for (i = 0; i < N_ELEMENTS(pl_mime_types); i++) {
-			if (!strcasecmp(val, pl_mime_types[i])) {
-				d_print("Content-Type: %s\n", val);
-				http_get_free(&hg);
-				return read_playlist(ip, hg.fd);
-			}
-		}
-	}
-
-	rc = setup_remote(ip, hg.headers, hg.fd);
-	http_get_free(&hg);
-	return rc;
-}
-*/
 static void ip_init(struct input_plugin *ip, char *filename)
 {
 	const struct input_plugin t = {
@@ -531,22 +293,16 @@ int ip_open(struct input_plugin *ip)
 	BUG_ON(ip->open);
 
 	/* set fd and ops, call ops->open */
-	if (ip->data.remote) {
-          //	rc = open_remote(ip);
-          //	if (rc == 0)
-          //		rc = ip->ops->open(&ip->data);
-	} else {
-		if (is_cdda_url(ip->data.filename)) {
-			ip->ops = get_ops_by_mime_type("x-content/audio-cdda");
-			rc = ip->ops ? ip->ops->open(&ip->data) : 1;
-		} else if (is_cue_url(ip->data.filename)) {
-			ip->ops = get_ops_by_mime_type("application/x-cue");
-			rc = ip->ops ? ip->ops->open(&ip->data) : 1;
-		} else
-			rc = open_file(ip);
-	}
+	if (is_cdda_url(ip->data.filename)) {
+		ip->ops = get_ops_by_mime_type("x-content/audio-cdda");
+		rc = ip->ops ? ip->ops->open(&ip->data) : 1;
+	} else if (is_cue_url(ip->data.filename)) {
+		ip->ops = get_ops_by_mime_type("application/x-cue");
+		rc = ip->ops ? ip->ops->open(&ip->data) : 1;
+	} else
+		rc = open_file(ip);
 
-	if (rc) {
+   	if (rc) {
 		d_print("opening `%s' failed: %d %s\n", ip->data.filename, rc,
 				rc == -1 ? strerror(errno) : "");
 		ip_reset(ip, 1);
@@ -793,46 +549,6 @@ int ip_eof(struct input_plugin *ip)
 	return ip->eof;
 }
 
-static struct ip *find_plugin(int idx)
-{
-	struct ip *ip;
-
-	list_for_each_entry(ip, &ip_head, node) {
-		if (idx == 0)
-			return ip;
-		idx--;
-	}
-	return NULL;
-}
-
-static void option_error(int rc)
-{
-	char *msg = ip_get_error_msg(NULL, rc, "setting option");
-	printf("%s", msg);
-	free(msg);
-}
-
-static void set_ip_option(unsigned int id, const char *val)
-{
-	const struct ip *ip = find_plugin(id >> 16);
-	int rc;
-
-	rc = ip->ops->set_option(id & 0xffff, val);
-	if (rc)
-		option_error(rc);
-}
-
-static void get_ip_option(unsigned int id, char *buf)
-{
-	const struct ip *ip = find_plugin(id >> 16);
-	char *val = NULL;
-
-	ip->ops->get_option(id & 0xffff, &val);
-	if (val) {
-		strcpy(buf, val);
-		free(val);
-	}
-}
 
 void ip_add_options(void)
 {
