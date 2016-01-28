@@ -12,12 +12,22 @@ There's a lot of code taken from the cmus project, such as reading/writing the c
 
 
 ## Building
+Install SoundTouch first:
+```
+./bootstrap
+./configure -–enable-integer-samples
+make
+sudo make install
+```
+
+Then this project:
 ```
 git clone https://github.com/jayay/cmus-bpmrecognition
 cd cmus-bpmrecogntion
 ./configure
 make
 ```
+There is no <install> step ATM.
 
 ## Usage
 ```
