@@ -12,7 +12,7 @@ There's a lot of code taken from the cmus project, such as reading/writing the c
 
 
 ## Building
-Install SoundTouch first:
+Install [SoundTouch](http://www.surina.net/soundtouch/sourcecode.html) with integer support first:
 ```
 ./bootstrap
 ./configure -–enable-integer-samples
@@ -27,7 +27,7 @@ cd cmus-bpmrecogntion
 ./configure
 make
 ```
-There is no <install> step ATM.
+There is no `make install` step ATM.
 
 ## Usage
 ```
