@@ -15,6 +15,9 @@ _ver3	= v1.0.0
 
 VERSION	= $(or $(_ver0),$(_ver1),$(_ver2),$(_ver3))
 OBJDIR	= build
+VPATH	= src
+LD	= $(CXX)
+LDFLAGS +=-ldl -lpthread -lm -L/usr/lib64 -L/usr/local/lib/ -lSoundTouch
 
 $(OBJDIR)/%.o: %.S
 	$(call cmd,as)
@@ -25,7 +28,8 @@ $(OBJDIR)/%.o: %.c
 $(OBJDIR)/%.o: %.cpp
 	$(call cmd,cxx)
 
-CPPFLAGS += -I/usr/local/include/soundtouch
+CPPFLAGS += -I/usr/local/include/soundtouch -Iinclude
+CFLAGS += -Iinclude
 
 quiet_cmd_cc    = CC     $@
       cmd_cc    = $(CC) -c $(CFLAGS) -o $@ $<
@@ -63,10 +67,10 @@ ifneq ($(dependencies),)
 -include $(dependencies)
 endif
 
-all: cmus-bpmrecognition
+all: $(OBJDIR)/cmus-bpmrecognition
 
-cmus-bpmrecognition: $(addprefix $(OBJDIR)/, base64.o bpmread.o buffer.o cache.o channelmap.o comment.o convert.o debug.o file.o gbuf.o input.o keyval.o locking.o main.o mergesort.o misc.o output.o path.o pcm.o player.o prog.o rbtree.o track_info.o uchar.o u_collate.o xmalloc.o xstrjoin.o soundtouch-wrapper.o)
-	$(CXX) -rdynamic $(CPPFLAGS) $^ -o $(OBJDIR)/$@ -ldl -lpthread -lm -L/usr/local/lib/ -lSoundTouch
+$(OBJDIR)/cmus-bpmrecognition: $(addprefix $(OBJDIR)/, base64.o bpmread.o buffer.o cache.o channelmap.o comment.o convert.o debug.o file.o gbuf.o input.o keyval.o locking.o main.o mergesort.o misc.o output.o path.o pcm.o player.o prog.o rbtree.o soundtouch-wrapper.o track_info.o uchar.o u_collate.o xmalloc.o xstrjoin.o)
+	$(call cmd,ld)
 .PHONY: clean
 clean:
 	$(RM) build/*.o build/cmus-bpmrecognition
