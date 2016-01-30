@@ -321,31 +321,6 @@ struct track_info **get_track_infos(void)
 	return tis;
 }
 
-struct track_info *get_track_infos_deep_copy(void)
-{
-	struct track_info *tis;
-	int i, c;
-
-	tis = xnew(struct track_info, total);
-	c = 0;
-	for (i = 0; i < HASH_SIZE; i++) {
-          //	struct track_info ti = *hash_table[i];
-          if (!hash_table[i]) {
-          	continue;
-          }
-          struct track_info *ti = xnew(struct track_info, 1);
-          memcpy(hash_table[i], ti, sizeof(struct track_info));
-		while (1) {
-                  memcpy(tis++, ti, sizeof(struct track_info));
-                  if (!(ti->next))
-	                        break;
-                  ti = (ti->next);
-		}
-	}
-        qsort(tis, total, sizeof(struct track_info *), ti_filename_cmp);
-	return tis;
-}
-
 static void flush_buffer(int fd, struct gbuf *buf)
 {
 	if (buf->len) {

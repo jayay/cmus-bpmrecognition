@@ -314,79 +314,8 @@ int mixer_get_fds(int *fds)
 	return op->mixer_ops->get_fds(fds);
 }
 
-static struct output_plugin *find_plugin(int idx)
-{
-	struct output_plugin *o;
-
-	list_for_each_entry(o, &op_head, node) {
-		if (idx == 0)
-			return o;
-		idx--;
-	}
-	return NULL;
-}
-
 extern int soft_vol;
 
-static void option_error(int rc)
-{
-	char *msg = op_get_error_msg(rc, "setting option");
-	printf("%s", msg);
-	free(msg);
-}
-
-static void set_dsp_option(unsigned int id, const char *val)
-{
-	const struct output_plugin *o = find_plugin(id >> 16);
-	int rc;
-
-	rc = o->pcm_ops->set_option(id & 0xffff, val);
-	if (rc)
-		option_error(rc);
-}
-
-static void set_mixer_option(unsigned int id, const char *val)
-{
-	const struct output_plugin *o = find_plugin(id >> 16);
-	int rc;
-
-	rc = o->mixer_ops->set_option(id & 0xffff, val);
-	if (rc) {
-		option_error(rc);
-		return;
-	}
-	if (op && op->mixer_ops == o->mixer_ops) {
-		/* option of the current op was set
-		 * try to reopen the mixer */
-		mixer_close();
-		if (!soft_vol)
-			mixer_open();
-	}
-}
-
-static void get_dsp_option(unsigned int id, char *buf)
-{
-	const struct output_plugin *o = find_plugin(id >> 16);
-	char *val = NULL;
-
-	o->pcm_ops->get_option(id & 0xffff, &val);
-	if (val) {
-		strcpy(buf, val);
-		free(val);
-	}
-}
-
-static void get_mixer_option(unsigned int id, char *buf)
-{
-	const struct output_plugin *o = find_plugin(id >> 16);
-	char *val = NULL;
-
-	o->mixer_ops->get_option(id & 0xffff, &val);
-	if (val) {
-		strcpy(buf, val);
-		free(val);
-	}
-}
 
 void op_add_options(void)
 {
