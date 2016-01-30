@@ -13,13 +13,39 @@ _ver3	= v1.0.0
 
 # Commands taken from cmus
 
+
+
+# Build verbosity:
+#   make V=0    silent
+#   make V=1    clean (default)
+#   make V=2    verbose
+
+# build verbosity (0-2), default is 1
+
+ifneq ($(origin V),command line)
+  V := 1
+endif
+ifneq ($(findstring s,$(MAKEFLAGS)),)
+  V := 0
+endif
+
+ifeq ($(V),2)
+  quiet =
+  Q =
+else
+  ifeq ($(V),1)
+    quiet = quiet_
+    Q = @
+  else
+    quiet = silent_
+    Q = @
+  endif
+endif
+
 VERSION	= $(or $(_ver0),$(_ver1),$(_ver2),$(_ver3))
 OBJDIR	= build
 VPATH	= src
 LD	= $(CC)
-
-$(OBJDIR)/%.o: %.S
-	$(call cmd,as)
 
 $(OBJDIR)/%.o: %.c
 	$(call cmd,cc)
@@ -28,52 +54,31 @@ $(OBJDIR)/%.o: %.cpp
 	$(call cmd,cxx)
 
 CFLAGS += -Iinclude -Wall
-CPPFLAGS += -I/usr/local/include/soundtouch -Iinclude -Wall
+CPPFLAGS += -I/usr/local/include/soundtouch
 LDFLAGS +=-ldl -lpthread -lm -L/usr/lib64 -L/usr/local/lib/ -lSoundTouch -Wall
 
-quiet_cmd_cc    = CC     $@
-      cmd_cc    = $(CC) -c $(CFLAGS) -o $@ $<
+quiet_cmd_cc	= CC	$@
+      cmd_cc	= $(CC) -c $(CFLAGS) -o $@ $<
 
-quiet_cmd_cxx    = CXX     $@
-      cmd_cxx    = $(CXX) -c $(CFLAGS) -o $@ $^ $(CPPFLAGS)
-
-# HOSTCC for program object files (.o)
-quiet_cmd_hostcc    = HOSTCC     $@
-      cmd_hostcc    = $(HOSTCC) -c $(HOST_CFLAGS) -o $@ $<
-
-# CC for shared library and dynamically loadable module objects (.lo)
-quiet_cmd_cc_lo = CC     $@
-      cmd_cc_lo = $(CC) -c $(CPPFLAGS) $(CFLAGS) $(SOFLAGS) -o $@ $<
+quiet_cmd_cxx	= CXX	$@
+      cmd_cxx	= $(CXX) -c $(CFLAGS) -o $@ $^ $(CPPFLAGS)
 
 # LD for programs, optional parameter: libraries
-quiet_cmd_ld = LD     $@
-      cmd_ld = $(LD) $(LDFLAGS) -o $@ $^ $(1) -lc -lstdc++
-
-# HOSTLD for programs, optional parameter: libraries
-quiet_cmd_hostld = HOSTLD     $@
-      cmd_hostld = $(HOSTLD) $(HOST_LDFLAGS) -o $@ $^ $(1)
-
-# LD for shared libraries, optional parameter: libraries
-quiet_cmd_ld_so = LD     $@
-      cmd_ld_so = $(LD) $(LDSOFLAGS) $(LDFLAGS) -o $@ $^ $(1)
-
-# LD for dynamically loadable modules, optional parameter: libraries
-quiet_cmd_ld_dl = LD     $@
-      cmd_ld_dl = $(LD) $(LDDLFLAGS) $(LDFLAGS) -o $@ $^ $(1)
+quiet_cmd_ld	= LD	$@
+      cmd_ld	= $(LD) $(LDFLAGS) -o $@ $^ $(1) -lc -lstdc++
 
 cmd = @$(if $($(quiet)cmd_$(1)),echo '   $(call $(quiet)cmd_$(1),$(2))' &&) $(call cmd_$(1),$(2))
 
-all: CXXFLAGS += -O3
 all: CFLAGS += -O3
 all: $(OBJDIR)/cmus-bpmrecognition
 
-debug: CXXFLAGS += -DDEBUG -g -O0
-debug: CCFLAGS += -DDEBUG -g -O0
-debug: LDFLAGS += -DDEBUG -g -O0
+debug: CFLAGS += -g -O0 -DDEBUG
+debug: LDFLAGS += -g -O0 -DDEBUG
+debug: quiet =
 debug: $(OBJDIR)/cmus-bpmrecognition
 
 $(OBJDIR)/cmus-bpmrecognition: $(addprefix $(OBJDIR)/, base64.o bpmread.o buffer.o cache.o channelmap.o comment.o convert.o debug.o file.o gbuf.o input.o keyval.o locking.o main.o mergesort.o misc.o output.o path.o pcm.o player.o prog.o rbtree.o soundtouch-wrapper.o track_info.o uchar.o u_collate.o xmalloc.o xstrjoin.o)
 	$(call cmd,ld)
-.PHONY: clean
+.PHONY: clean debug
 clean:
 	$(RM) build/*.o build/cmus-bpmrecognition
