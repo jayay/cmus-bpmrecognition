@@ -220,7 +220,7 @@ void ip_load_plugins(void)
 
 	dir = opendir(plugin_dir);
 	if (dir == NULL) {
-          //		error_msg("couldn't open directory `%s': %s", plugin_dir, strerror(errno));
+		printf("couldn't open directory `%s': %s", plugin_dir, strerror(errno));
 		return;
 	}
 	while ((d = (struct dirent *) readdir(dir)) != NULL) {
@@ -242,7 +242,7 @@ void ip_load_plugins(void)
 
 		so = dlopen(filename, RTLD_NOW);
 		if (so == NULL) {
-			d_print("%s: %s\n", filename, dlerror());
+			printf("%s: %s\n", filename, dlerror());
 			continue;
 		}
 

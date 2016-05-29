@@ -119,7 +119,7 @@ int writeBpm(const char* filename, char force)
 	if (rc) {
 		fprintf(stderr,"Error opening file `%s'\n", filename);
 		ip_delete(ip);
-		return 1;
+		return -1;
 	} else {
 		ip_setup(ip);
 	}
@@ -129,10 +129,10 @@ int writeBpm(const char* filename, char force)
 	if (ti != NULL) {
 		if ((ti->bpm > 0) && !force) {
 			fprintf(stderr, "BPM: %i\n", ti->bpm);
-			return STATE_HAS_BPM;
+			return 0;
 		}
 	} else {
-		return STATE_ERROR;
+		return -1;
 	}
 
 	channels = sf_get_sample_size(ip->data.sf);
@@ -172,4 +172,3 @@ int writeBpm(const char* filename, char force)
 	ip_delete(ip);
 	return res;
 }
-

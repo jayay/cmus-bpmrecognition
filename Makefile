@@ -55,7 +55,7 @@ $(OBJDIR)/%.o: %.cpp
 
 CFLAGS += -Iinclude -Wall
 CPPFLAGS += -I/usr/local/include/soundtouch
-LDFLAGS +=-ldl -lpthread -lm -L/usr/lib64 -L/usr/local/lib/ -lSoundTouch -Wall
+LDFLAGS += -ldl -lpthread -lm -L/usr/lib64 -L/usr/local/lib/ -lSoundTouch -Wall -rdynamic
 
 quiet_cmd_cc	= CC	$@
       cmd_cc	= $(CC) -c $(CFLAGS) -o $@ $<
@@ -77,7 +77,7 @@ debug: LDFLAGS += -g -O0 -DDEBUG
 debug: quiet =
 debug: $(OBJDIR)/cmus-bpmrecognition
 
-$(OBJDIR)/cmus-bpmrecognition: $(addprefix $(OBJDIR)/, base64.o bpmread.o buffer.o cache.o channelmap.o comment.o convert.o debug.o file.o gbuf.o input.o keyval.o locking.o main.o mergesort.o misc.o output.o path.o pcm.o player.o prog.o rbtree.o soundtouch-wrapper.o track_info.o uchar.o u_collate.o xmalloc.o xstrjoin.o)
+$(OBJDIR)/cmus-bpmrecognition: $(addprefix $(OBJDIR)/, ape.o base64.o bpmread.o buffer.o cache.o channelmap.o comment.o convert.o debug.o file.o gbuf.o id3.o input.o keyval.o locking.o main.o mergesort.o misc.o output.o path.o pcm.o player.o prog.o rbtree.o read_wrapper.o soundtouch-wrapper.o track_info.o uchar.o u_collate.o xmalloc.o xstrjoin.o)
 	$(call cmd,ld)
 .PHONY: clean debug
 clean:

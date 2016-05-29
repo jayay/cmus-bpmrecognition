@@ -24,13 +24,13 @@
 #include <stdlib.h>
 #include <sys/time.h>
 
-#if DEBUG > 1
+#ifdef DEBUG
 static FILE *debug_stream = NULL;
 #endif
 
 void debug_init(void)
 {
-#if DEBUG > 1
+#ifdef DEBUG
 	char filename[512];
 	const char *dir = getenv("CMUS_HOME");
 

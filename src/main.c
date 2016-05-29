@@ -15,7 +15,6 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-
 #include "bpmread.h"
 #include "misc.h"
 #include "xstrjoin.h"
@@ -25,6 +24,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+
+char *id3_default_charset;
 
 int main(int argc, char **argv)
 {
@@ -39,6 +40,7 @@ int main(int argc, char **argv)
 	ssize_t read;
 
 	char *cmus_lib_file = xstrjoin(cmus_config_dir, "/lib.pl");
+	id3_default_charset = "ISO-8859-1";
 	printf("library file: %s\n", cmus_lib_file);
 
 	fp = fopen(cmus_lib_file, "r");
@@ -52,13 +54,9 @@ int main(int argc, char **argv)
 		printf("scanning %s\n", file);
 		int state = writeBpm(file, 0);
 
-		switch (state) {
-			case STATE_HAS_BPM:
-				printf("Skipping, because already set\n");
-				break;
-			case STATE_ERROR:
-				printf("Error!\n");
-				break;
+		if  (state < 0) {
+			printf("Error!\n");
+			continue;
 		}
 	}
 
