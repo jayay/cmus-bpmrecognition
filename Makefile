@@ -53,19 +53,15 @@ $(OBJDIR)/%.o: %.c
 $(OBJDIR)/%.o: %.cpp
 	$(call cmd,cxx)
 
-CFLAGS += -Iinclude -Wall
-CPPFLAGS += -I/usr/local/include/soundtouch
-LDFLAGS += -ldl -lpthread -lm -L/usr/lib64 -L/usr/local/lib/ -lSoundTouch -Wall -rdynamic
+CFLAGS += -Iinclude $(shell pkg-config aubio --cflags) -Wall
+LDFLAGS += -ldl -lpthread -lm -L/usr/lib64 -L/usr/local/lib/ $(shell pkg-config aubio --libs-only-l) -Wall -rdynamic
 
 quiet_cmd_cc	= CC	$@
       cmd_cc	= $(CC) -c $(CFLAGS) -o $@ $<
 
-quiet_cmd_cxx	= CXX	$@
-      cmd_cxx	= $(CXX) -c $(CFLAGS) -o $@ $^ $(CPPFLAGS)
-
 # LD for programs, optional parameter: libraries
 quiet_cmd_ld	= LD	$@
-      cmd_ld	= $(LD) $(LDFLAGS) -o $@ $^ $(1) -lc -lstdc++
+      cmd_ld	= $(LD) $(LDFLAGS) -o $@ $^ $(1) -lc
 
 cmd = @$(if $($(quiet)cmd_$(1)),echo '   $(call $(quiet)cmd_$(1),$(2))' &&) $(call cmd_$(1),$(2))
 
@@ -77,7 +73,10 @@ debug: LDFLAGS += -g -O0 -DDEBUG
 debug: quiet =
 debug: $(OBJDIR)/cmus-bpmrecognition
 
-$(OBJDIR)/cmus-bpmrecognition: $(addprefix $(OBJDIR)/, ape.o base64.o bpmread.o buffer.o cache.o channelmap.o comment.o convert.o debug.o file.o gbuf.o id3.o input.o keyval.o locking.o main.o mergesort.o misc.o output.o path.o pcm.o player.o prog.o rbtree.o read_wrapper.o soundtouch-wrapper.o track_info.o uchar.o u_collate.o xmalloc.o xstrjoin.o)
+bintostdout: CFLAGS += -DBINTOSTDOUT
+bintostdout: debug
+
+$(OBJDIR)/cmus-bpmrecognition: $(addprefix $(OBJDIR)/, ape.o base64.o bpmread.o buffer.o cache.o channelmap.o comment.o convert.o debug.o file.o gbuf.o id3.o input.o keyval.o locking.o main.o mergesort.o misc.o output.o path.o pcm.o player.o prog.o rbtree.o read_wrapper.o sampleconvert.o track_info.o uchar.o u_collate.o xmalloc.o xstrjoin.o)
 	$(call cmd,ld)
 .PHONY: clean debug
 clean:

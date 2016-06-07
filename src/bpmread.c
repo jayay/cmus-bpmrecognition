@@ -27,16 +27,19 @@
 #include "ip.h"
 #include "input.h"
 #include "buffer.h"
-#include "soundtouch-wrapper.h"
+#include "sampleconvert.h"
 #include "sf.h"
 
+#include <aubio/aubio.h>
+#include <assert.h>
 #include <stdio.h>
 
-char *program_name = "cmus_bpmread";
+const char * const program_name = "cmus_bpmread";
 struct track_info *hash_table[HASH_SIZE];
 int using_utf8 = 1;
 char *charset = "UTF-8";
 char *icecast_default_charset = "UTF-8";
+int hop_size = 1024;
 
 int channels = 0;
 
@@ -72,40 +75,6 @@ struct input_plugin {
 };
 
 
-/**
- * Stolen from Mixxx
- *
- * @param bpm The BPM value calculated by libSoundTouch
- *
- * The value of @param bpm should
- * become between @param min and @param max
- *
- * @return the new calculated bpm
- *
- */
-
-static float correctBpm(float bpm, int min, int max)
-{
-	if (bpm * 2 < max) {
-		bpm *= 2;
-	}
-
-	if (bpm > max) {
-		bpm /= 8;
-	}
-
-	while (bpm < min) {
-		bpm *= 2;
-	}
-
-	return bpm;
-}
-
-
-/**
- *
- */
-
 int writeBpm(const char* filename, char force)
 {
 	int rc;
@@ -137,38 +106,72 @@ int writeBpm(const char* filename, char force)
 
 	channels = sf_get_sample_size(ip->data.sf);
 
-	int rate = sf_get_rate(ip->data.sf);
-	buffer_nr_chunks = 10 * rate * sizeof(SAMPLETYPE) * channels / CHUNK_SIZE;
+	int samplerate = sf_get_rate(ip->data.sf);
+	buffer_nr_chunks = 1024;
 	buffer_init();
 
-	BPMDetect* SBpmDetect = constructBPMDetect(channels, rate);
+	fvec_t * in = new_fvec(sf_get_frame_size(ip->data.sf) * 6720);
+	fvec_t * out = new_fvec (2); // output position
+
+       	aubio_tempo_t *a_tempo = new_aubio_tempo(
+						 "default",
+						 buffer_nr_chunks,
+						 (buffer_nr_chunks / 4),
+						 samplerate);
+
+	if (aubio_tempo_set_threshold(a_tempo, (smpl_t)20.))
+		fprintf(stderr, "Couldn't set threshold\n");
+
+	assert(a_tempo != NULL);
+	int bpm = -1;
+	float most_prop = 0;
 
 	while ((size = buffer_get_wpos(&wpos))) {
 		nr_read = ip_read(ip, wpos, size);
-		if (nr_read == 0) {
+		if (nr_read <= 0) {
 			/* EOF */
-			break;
+		       	break;
 		}
 
-		inputSamples(SBpmDetect, (SAMPLETYPE*) wpos, nr_read/channels);
+		convert_buffer(in, nr_read * sf_get_sample_size(ip->data.sf), wpos);
 
 		/* For debugging: it's easy to write the stream to stdout and pipe it into
-		 * aplay -c 2 -r 44100  -f S16_LE
-		 * fwrite(wpos, nr_read, 1, stdout);
+		 * aplay -c 2 -r 44100  -f FLOAT_LE
 		 */
 
-		// mark buffer as used
-		buffer_fill(nr_read);
+#ifdef BINTOSTDOUT
+	       	write(1, in->data, in->length);
+#endif
+
+		aubio_tempo_do(a_tempo, in, out);
+
+		if (out->data[0] != 0) {
+#ifndef BINTOSTDOUT
+#ifdef DEBUG
+			printf("beat at %.3fms, %.3fs, frame %d, %.2fbpm with confidence %.2f\n",
+				  aubio_tempo_get_last_ms(a_tempo),
+				  aubio_tempo_get_last_s(a_tempo),
+				  aubio_tempo_get_last(a_tempo),
+				  aubio_tempo_get_bpm(a_tempo),
+				  aubio_tempo_get_confidence(a_tempo));
+#endif
+#endif
+			float confidence = aubio_tempo_get_confidence(a_tempo);
+
+			if (confidence > 0 && confidence >= most_prop)
+				bpm = aubio_tempo_get_bpm(a_tempo);
+		}
+
+		buffer_reset();
 	}
 
-	float bpmCalculated = getBpm(SBpmDetect);
-	float bpm = correctBpm(bpmCalculated, 50, 150);
-
-	// printf("%s: found %f BPM\n", filename, bpm);
+	printf("... found %d BPM\n", (int)bpm);
 	int res = (set_bpm_for_file(filename, (int)bpm) == 0 ? STATE_SUCCESS : STATE_ERROR);
 
-	freeBPMDetect(SBpmDetect);
-
+	del_aubio_tempo(a_tempo);
+	del_fvec(in);
+	del_fvec(out);
+	aubio_cleanup();
 	ip_delete(ip);
 	return res;
 }

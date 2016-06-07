@@ -32,7 +32,10 @@ int main(int argc, char **argv)
 	misc_init();
 	cache_init();
 	ip_load_plugins();
+
+#ifndef BINTOSTDOUT
 	ip_dump_plugins();
+#endif
 
 	FILE * fp;
 	char * file = NULL;
@@ -41,7 +44,10 @@ int main(int argc, char **argv)
 
 	char *cmus_lib_file = xstrjoin(cmus_config_dir, "/lib.pl");
 	id3_default_charset = "ISO-8859-1";
+
+#ifndef BINTOSTDOUT
 	printf("library file: %s\n", cmus_lib_file);
+#endif
 
 	fp = fopen(cmus_lib_file, "r");
 
@@ -51,7 +57,10 @@ int main(int argc, char **argv)
 	while ((read = getline(&file, &len, fp)) != -1) {
 		file[read-1] = '\0';
 
+#ifndef BINTOSTDOUT
 		printf("scanning %s\n", file);
+#endif
+
 		int state = writeBpm(file, 0);
 
 		if  (state < 0) {
@@ -63,7 +72,9 @@ int main(int argc, char **argv)
 	fclose(fp);
 	free(cmus_lib_file);
 
+#ifndef BINTOSTDOUT
 	printf("Writing Cache...\n");
+#endif
 	cache_close();
 
 	exit(EXIT_SUCCESS);

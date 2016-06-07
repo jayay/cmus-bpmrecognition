@@ -3,8 +3,8 @@
 
 AC_PREREQ([2.69])
 AC_INIT([cmus-bpmrecognition], [1.0.0], [jakob-jungmann@hotmail.de])
-AC_CONFIG_SRCDIR([mergesort.h])
-AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_SRCDIR([src/])
+AC_CONFIG_HEADERS([include/])
 
 # Checks for programs.
 AC_PROG_CXX
@@ -12,7 +12,7 @@ AC_PROG_CC
 
 # Checks for libraries.
 # FIXME: Replace `main' with a function in `-lSoundTouch':
-AC_CHECK_LIB([SoundTouch], [inputSamples])
+AC_CHECK_LIB([aubio], [inputSamples])
 # FIXME: Replace `main' with a function in `-lc':
 AC_CHECK_LIB([c], [main])
 # FIXME: Replace `main' with a function in `-ldl':

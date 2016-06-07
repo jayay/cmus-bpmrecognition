@@ -18,6 +18,9 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
+/* Define to 1 if you have the `aubio' library (-laubio). */
+#undef HAVE_LIBAUBIO
+
 /* Define to 1 if you have the `c' library (-lc). */
 #undef HAVE_LIBC
 
@@ -29,9 +32,6 @@
 
 /* Define to 1 if you have the `pthread' library (-lpthread). */
 #undef HAVE_LIBPTHREAD
-
-/* Define to 1 if you have the `SoundTouch' library (-lSoundTouch). */
-#undef HAVE_LIBSOUNDTOUCH
 
 /* Define to 1 if you have the <limits.h> header file. */
 #undef HAVE_LIMITS_H

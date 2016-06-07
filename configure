@@ -585,7 +585,7 @@ PACKAGE_STRING='cmus-bpmrecognition 1.0.0'
 PACKAGE_BUGREPORT='jakob-jungmann@hotmail.de'
 PACKAGE_URL=''
 
-ac_unique_file="mergesort.h"
+ac_unique_file="src/"
 # Factoring default headers for most tests.
 ac_includes_default="\
 #include <stdio.h>
@@ -2321,7 +2321,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 
-ac_config_headers="$ac_config_headers config.h"
+ac_config_headers="$ac_config_headers include/"
 
 
 # Checks for programs.
@@ -3375,13 +3375,13 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 # Checks for libraries.
 # FIXME: Replace `main' with a function in `-lSoundTouch':
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for inputSamples in -lSoundTouch" >&5
-$as_echo_n "checking for inputSamples in -lSoundTouch... " >&6; }
-if ${ac_cv_lib_SoundTouch_inputSamples+:} false; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for inputSamples in -laubio" >&5
+$as_echo_n "checking for inputSamples in -laubio... " >&6; }
+if ${ac_cv_lib_aubio_inputSamples+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   ac_check_lib_save_LIBS=$LIBS
-LIBS="-lSoundTouch  $LIBS"
+LIBS="-laubio  $LIBS"
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -3401,22 +3401,22 @@ return inputSamples ();
 }
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_SoundTouch_inputSamples=yes
+  ac_cv_lib_aubio_inputSamples=yes
 else
-  ac_cv_lib_SoundTouch_inputSamples=no
+  ac_cv_lib_aubio_inputSamples=no
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
 LIBS=$ac_check_lib_save_LIBS
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_SoundTouch_inputSamples" >&5
-$as_echo "$ac_cv_lib_SoundTouch_inputSamples" >&6; }
-if test "x$ac_cv_lib_SoundTouch_inputSamples" = xyes; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_aubio_inputSamples" >&5
+$as_echo "$ac_cv_lib_aubio_inputSamples" >&6; }
+if test "x$ac_cv_lib_aubio_inputSamples" = xyes; then :
   cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBSOUNDTOUCH 1
+#define HAVE_LIBAUBIO 1
 _ACEOF
 
-  LIBS="-lSoundTouch $LIBS"
+  LIBS="-laubio $LIBS"
 
 fi
 
@@ -5428,7 +5428,7 @@ cat >>$CONFIG_STATUS <<\_ACEOF || ac_write_fail=1
 for ac_config_target in $ac_config_targets
 do
   case $ac_config_target in
-    "config.h") CONFIG_HEADERS="$CONFIG_HEADERS config.h" ;;
+    "include/") CONFIG_HEADERS="$CONFIG_HEADERS include/" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac
